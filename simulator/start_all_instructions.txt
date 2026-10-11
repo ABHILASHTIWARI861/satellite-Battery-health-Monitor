@@ -1,0 +1,17 @@
+AERO-GUARD no-hardware real firmware simulation (WSL Ubuntu)
+
+Terminal 1 (leave running):
+  cd /mnt/c/Users/LENOVO/Downloads/major-project-hitl-simulator-integrated/major-project-main-updated
+  bash simulator/run_emulator.sh 7777
+
+Terminal 2 (leave running):
+  cd /mnt/c/Users/LENOVO/Downloads/major-project-hitl-simulator-integrated/major-project-main-updated
+  source .venv/bin/activate
+  python run_dashboard.py --no-browser --hitl-port socket://127.0.0.1:7777
+
+Windows browser:
+  http://127.0.0.1:8000/arduino-simulator
+
+Do NOT use --hitl-port VIRTUAL for the real simavr connection; VIRTUAL uses the
+Python mock instead of the emulated ATmega328P firmware. Check API health at
+http://127.0.0.1:8000/api/health.

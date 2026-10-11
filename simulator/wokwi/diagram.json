@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "author": "AERO-GUARD HITL",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-uno", "id": "uno", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-led", "id": "led13", "top": -90, "left": 180, "attrs": { "color": "cyan", "label": "Pin 13 alert" } },
+    { "type": "wokwi-resistor", "id": "r13", "top": -30, "left": 170, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-led", "id": "led12", "top": -90, "left": 250, "attrs": { "color": "orange", "label": "Pin 12 relay" } },
+    { "type": "wokwi-resistor", "id": "r12", "top": -30, "left": 240, "rotate": 90, "attrs": { "value": "220" } }
+  ],
+  "connections": [
+    [ "uno:13", "r13:1", "cyan", [ "v0" ] ],
+    [ "r13:2", "led13:A", "cyan", [ "v0" ] ],
+    [ "led13:C", "uno:GND.1", "black", [ "v0" ] ],
+    [ "uno:12", "r12:1", "orange", [ "v0" ] ],
+    [ "r12:2", "led12:A", "orange", [ "v0" ] ],
+    [ "led12:C", "uno:GND.1", "black", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

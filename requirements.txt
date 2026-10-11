@@ -1,0 +1,19 @@
+# Runtime dependencies for AERO-GUARD dashboard and ML pipeline.
+# PyTorch and Gymnasium were not imported by the current Python source; omitting
+# them avoids an unnecessary multi-GB CUDA installation on CPU-only WSL systems.
+numpy>=1.26.0
+pandas>=2.0.0
+scipy>=1.12.0
+scikit-learn>=1.4.0
+xgboost>=2.0.0,<3.0.0
+pyserial>=3.5
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+websockets>=12.0
+jinja2>=3.1.0
+pyyaml>=6.0
+joblib>=1.3.0
+rich>=13.7.0
+matplotlib>=3.8.0
+reportlab>=4.0.0
+pytest>=8.0.0

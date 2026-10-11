@@ -1,0 +1,9 @@
+# Wokwi for VS Code project configuration (Workspace Root)
+# 1) Build firmware:   bash simulator/build_firmware.sh
+# 2) Press F1 -> "Wokwi: Start Simulator" (or click Play in diagram.json)
+# 3) Run dashboard:   python run_dashboard.py --hitl-port rfc2217://localhost:4000
+[wokwi]
+version = 1
+firmware = 'simulator/build/firmware.hex'
+elf = 'simulator/build/firmware.elf'
+rfc2217ServerPort = 4000

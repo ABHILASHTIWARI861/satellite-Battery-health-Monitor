@@ -1,0 +1,9 @@
+# Wokwi for VS Code project: runs the REAL firmware on a simulated Arduino Uno
+# 1) Build firmware:   simulator/build_firmware.sh   (or export the compiled .hex from Arduino IDE / arduino-cli)
+# 2) Open this folder in VS Code with the "Wokwi Simulator" extension, then: F1 -> "Wokwi: Start Simulator"
+# 3) Run the dashboard:  python run_dashboard.py --hitl-port rfc2217://localhost:4000
+[wokwi]
+version = 1
+firmware = '../build/firmware.hex'
+elf = '../build/firmware.elf'
+rfc2217ServerPort = 4000

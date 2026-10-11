@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AERO-GUARD Arduino HITL Simulator</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f5f6f8;--card:#fff;--fg:#14181f;--mut:#667085;--bd:#dfe3ea;--led:#f5a300;--rel:#e5484d;--ok:#16a34a;--mon:#0b1220;--monfg:#9be7a8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1117;--card:#161b22;--fg:#e6edf3;--mut:#8b949e;--bd:#2a313c}}
+:root[data-theme="dark"]{--bg:#0d1117;--card:#161b22;--fg:#e6edf3;--mut:#8b949e;--bd:#2a313c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*:before,*:after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0 0 2px}p.s{color:var(--mut);margin:0 0 14px;font-size:13px}
+.g{display:grid;gap:12px;grid-template-columns:1fr 1fr}@media(max-width:700px){.g{grid-template-columns:1fr}}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
+.c h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 0 10px}
+.pins{display:flex;gap:18px;justify-content:center;align-items:center;margin:6px 0}
+.pin{text-align:center;font-size:12px;color:var(--mut)}
+.dot{width:54px;height:54px;border-radius:50%;margin:0 auto 6px;border:2px solid var(--bd);background:var(--bd);transition:background .03s,box-shadow .03s}
+.dot.on.l{background:var(--led);box-shadow:0 0 22px 6px var(--led);border-color:var(--led)}
+.dot.on.r{background:var(--rel);box-shadow:0 0 22px 6px var(--rel);border-color:var(--rel)}
+.mode{text-align:center;font-weight:600;margin-top:8px}
+canvas{width:100%;height:56px;display:block;border-radius:8px;background:var(--mon);margin-top:10px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-size:13px;padding:8px 11px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--mut)}button.p{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.mon{background:var(--mon);color:var(--monfg);font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;border-radius:8px;padding:10px;height:190px;overflow:auto;white-space:pre-wrap}
+.mon .tx{color:#7cc4ff}
+.row{display:flex;gap:8px;margin-top:8px}input{flex:1;min-width:0;font:13px ui-monospace,Menlo,Consolas,monospace;padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}td,th{padding:5px 6px;border-bottom:1px solid var(--bd);text-align:left}th{color:var(--mut);font-weight:500}
+.wide{grid-column:1/-1}.tag{font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>AERO-GUARD · Arduino HITL Simulator</h1>
+<p class="s">Live monitor for the real <code>satellite_hitl_controller.ino</code> running in simavr/Wokwi. Commands go through the Python HITL backend; physical hardware is not required.</p>
+
+<div class="g">
+  <section class="c">
+    <h2>Arduino Uno · Live MCU Pins</h2>
+    <div class="pins">
+      <div class="pin"><div id="led" class="dot l"></div>Pin 13 · LED</div>
+      <div class="pin"><div id="rel" class="dot r"></div>Pin 12 · Relay</div>
+    </div>
+    <div class="mode" id="mode">NOMINAL · LED OFF</div>
+    <div class="tag" id="state" style="text-align:center">Connecting to backend…</div><div class="tag" id="connection" style="text-align:center;margin-top:4px">Backend: checking</div>
+    <canvas id="wave" width="600" height="56"></canvas>
+    <div class="tag">Pin 13 waveform (last 3 s)</div>
+  </section>
+
+  <section class="c">
+    <h2>Serial Monitor (115200)</h2>
+    <div class="mon" id="mon"></div>
+    <div class="row"><input id="cmd" value="<1,3,3>" aria-label="serial command"><button class="p" id="send">Send</button></div>
+    <div class="tag" style="margin-top:6px">Format: &lt;ALERT,SEVERITY,RL_ACTION&gt;</div>
+  </section>
+
+  <section class="c wide">
+    <h2>Commands (sent to the Python HITL bridge)</h2>
+    <div class="btns" id="sc"></div>
+    <div class="btns" style="margin-top:10px"><button class="p" id="play">▶ Mission replay (auto)</button><button id="stop">■ Stop</button></div>
+    <div class="tag" id="rp" style="margin-top:8px"></div>
+  </section>
+
+  <section class="c wide">
+    <h2>Behaviour table (from firmware)</h2>
+    <table><tr><th>Packet</th><th>Pin 13 LED</th><th>Pin 12 Relay</th></tr>
+    <tr><td>&lt;0,0,0&gt; Nominal</td><td>OFF</td><td>LOW</td></tr>
+    <tr><td>&lt;1,1..3,0|1|3&gt; Alert / Safe mode</td><td>SOLID ON</td><td>HIGH</td></tr>
+    <tr><td>&lt;1,x,2&gt; Load shedding</td><td>250 ms pulse</td><td>unchanged*</td></tr>
+    <tr><td>&lt;x,4,x&gt; Safety override</td><td>50 ms strobe</td><td>HIGH</td></tr></table>
+    <div class="tag" style="margin-top:6px">*Firmware me pulse branch relay ko touch nahi karta, to relay apni pichli state hold karta hai.</div>
+  </section>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id),mon=$("mon");
+let current={alert:0,sev:0,rl:0,p13:0,p12:0,mode:"OFF"},lastPin=null,lastPinAt=0;
+const sevNames={0:"NORMAL",1:"ELEVATED",2:"WARNING",3:"CRITICAL",4:"OVERRIDE"};
+const scenarios=[
+ ["Nominal","<0,0,0>"],
+ ["Elevated · pre-arm","<1,1,1>"],
+ ["Warning · load shedding","<1,2,2>"],
+ ["Critical · safe mode","<1,3,3>"],
+ ["Critical Safety Override","<1,4,3>"]
+];
+function log(s,tx=false){const d=document.createElement("div");if(tx)d.className="tx";d.textContent=(tx?"> ":"")+s;mon.appendChild(d);mon.scrollTop=mon.scrollHeight}
+function parsePacket(s){
+ const m=s.trim().match(/^<\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*>$/);
+ if(!m)throw new Error("Use packet format <ALERT,SEVERITY_CODE,RL_ACTION>, e.g. <1,2,2>");
+ const a=+m[1],sev=+m[2],rl=+m[3];
+ if(a>1||sev>4||rl>3)throw new Error("Values out of range: alert 0–1, severity 0–4, action 0–3");
+ return {alert_state:a,severity:sevNames[sev],rl_action:rl,sev,alert:a};
+}
+async function send(s){
+ let c;
+ try{c=parsePacket(s)}catch(e){log("ERROR: "+e.message);return}
+ log(s,true);
+ try{
+  const r=await fetch("/api/simulator/command",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({alert_state:c.alert_state,severity:c.severity,rl_action:c.rl_action})});
+  const data=await r.json();
+  if(!r.ok||data.status!=="success")throw new Error(data.message||("HTTP "+r.status));
+  current.alert=c.alert;current.sev=c.sev;current.rl=c.rl; 
+  const hw=data.hardware||{};
+  if(hw.last_ack)log(hw.last_ack);
+  else log("Command sent; waiting for firmware ACK…");
+  if(hw.port)log("Bridge: "+hw.port+" · "+(hw.is_virtual?"virtual emulator":"serial firmware"));
+  $("rp").textContent="Command delivered to backend. Pin telemetry is polled live.";
+  await refreshStatus();
+ }catch(e){
+  log("BACKEND ERROR: "+e.message);
+  $("connection").textContent="Backend: not connected — open this page via http://127.0.0.1:8000/arduino-simulator";
+ }
+}
+scenarios.forEach(([n,c])=>{const b=document.createElement("button");b.textContent=n;b.onclick=()=>{stopReplay();$("cmd").value=c;send(c)};$("sc").appendChild(b)});
+$("send").onclick=()=>{stopReplay();send($("cmd").value)};
+$("cmd").onkeydown=e=>{if(e.key==="Enter")$("send").click()};
+let rt=null;
+const seq=[["Nominal telemetry","<0,0,0>"],["Elevated: ML ensemble flags drift","<1,1,1>"],["Warning: RL picks load shedding","<1,2,2>"],["Critical: RL picks safe mode","<1,3,3>"],["Safety override fires","<1,4,3>"],["Recovered to nominal","<0,0,0>"]];
+function stopReplay(){if(rt){clearTimeout(rt);rt=null}$("rp").textContent=""}
+function step(i){if(i>=seq.length){stopReplay();return}$("rp").textContent=`Mission replay ${i+1}/${seq.length}: ${seq[i][0]}`;$("cmd").value=seq[i][1];send(seq[i][1]).finally(()=>{rt=setTimeout(()=>step(i+1),2500)})}
+$("play").onclick=()=>{stopReplay();step(0)};$("stop").onclick=stopReplay;
+const cv=$("wave"),cx=cv.getContext("2d"),hist=[];
+function draw(){
+ const now=Date.now();hist.push([now,current.p13]);while(hist.length&&hist[0][0]<now-3000)hist.shift();
+ cx.clearRect(0,0,600,56);cx.strokeStyle="#f5a300";cx.lineWidth=2;cx.beginPath();
+ hist.forEach(([t,v],i)=>{const x=600-(now-t)/3000*600,y=v?10:46;i?cx.lineTo(x,y):cx.moveTo(x,y)});
+ if(hist.length)cx.lineTo(600,current.p13?10:46);cx.stroke();
+}
+function render(){
+ $("led").classList.toggle("on",!!current.p13);$("rel").classList.toggle("on",!!current.p12);
+ $("state").textContent=`alert=${current.alert} sev=${current.sev} rl=${current.rl} · P13=${current.p13} P12=${current.p12}`;
+ $("mode").textContent=current.mode|| (current.sev===4?"CRITICAL SAFETY OVERRIDE · 50 ms strobe":(current.rl===2&&current.alert===1)?"LOAD SHEDDING · 250 ms pulse":current.alert===1?"ANOMALY ALERT · LED solid ON":"NOMINAL · LED OFF");
+ draw();
+}
+async function refreshStatus(){
+ try{
+  const r=await fetch("/api/simulator/status",{cache:"no-store"}),s=await r.json();
+  if(!r.ok||s.message)throw new Error(s.message||("HTTP "+r.status));
+  current.p13=Number(s.pin13_led_state||0);current.p12=Number(s.pin12_relay_state||0);
+  if(s.last_sent_alert!==undefined)current.alert=Number(s.last_sent_alert);
+  else if(s.pin13_state!==undefined)current.alert=Number(s.pin13_state);
+  if(s.active_rl_action!==undefined)current.rl=Number(s.active_rl_action);
+  const sevCode=Object.keys(sevNames).find(k=>sevNames[k]===String(s.active_severity||"").toUpperCase());
+  if(sevCode!==undefined)current.sev=Number(sevCode);
+  else if(typeof s.active_severity==="number")current.sev=s.active_severity;
+  current.mode=s.pin13_mode||"";
+  $("connection").textContent=`Backend: ${s.connected?"connected":"not connected"} · ${s.port||s.device||"HITL bridge"} · Source: ${s.telemetry_source||"bridge"}`;
+  $("connection").style.color=s.connected?"var(--ok)":"var(--mut)";
+  render();
+ }catch(e){
+  $("connection").textContent="Backend unavailable. Start the dashboard and open this page from it.";
+  $("connection").style.color="var(--rel)";
+ }
+}
+log("Waiting for Python HITL backend; this page does not emulate firmware locally.");
+refreshStatus();setInterval(refreshStatus,100);
+</script>
+</body>
+</html>
